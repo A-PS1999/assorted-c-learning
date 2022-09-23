@@ -1,19 +1,18 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "inventory.h"
 #include "readline.h"
-#include "quicksort.h"
 
-int find_part(int number, int num_parts, struct part *inventory);
-void insert(int *num_parts, struct part *inventory);
-void search(struct part *inventory, int num_parts);
-void update(struct part *inventory, int num_parts);
-void print(int num_parts, struct part *inventory);
+struct part *find_part(int number, struct part **inventory);
+void insert(struct part **inventory);
+void search(struct part **inventory);
+void update(struct part **inventory);
+void delete(struct part **inventory);
+void print(struct part **inventory);
 
 int main(void)
 {
-    struct part inventory[MAX_PARTS];
-
-    int num_parts = 0;
+    struct part *inventory = NULL;
 
     char code;
 
@@ -24,16 +23,19 @@ int main(void)
             ;
         switch (code) {
             case 'i':
-                insert(&num_parts, inventory);
+                insert(&inventory);
                 break;
             case 's':
-                search(inventory, num_parts);
+                search(&inventory);
                 break;
             case 'u':
-                update(inventory, num_parts);
+                update(&inventory);
+                break;
+            case 'e':
+                delete(&inventory);
                 break;
             case 'p':
-                print(num_parts, inventory);
+                print(&inventory);
                 break;
             case 'q':
                 return 0;
@@ -44,70 +46,80 @@ int main(void)
     }
 }
 
-int find_part(int number, int num_parts, struct part *inventory) {
-    int i;
+struct part *find_part(int number, struct part **inventory) {
+    struct part *p;
 
-    for (i=0; i < num_parts; i++) {
-        if (inventory[i].number == number) {
-            return i;
-        }
+    for (p = *inventory; p != NULL && number > p->number; p = p->next);
+    if (p != NULL && p->number == number) {
+        return p;
     }
 
-    return -1;
+    return NULL;
 }
 
-void insert(int *num_parts, struct part *inventory) {
-    int part_number;
+void insert(struct part **inventory) {
+    struct part *curr, *prev, *new_node;
 
-    if (*num_parts == MAX_PARTS) {
-        printf("Database is full. Cannot add more parts.\n");
+    new_node = malloc(sizeof(struct part));
+    if (new_node == NULL) {
+        printf("Database is full. Unable to add more parts.\n");
         return;
     }
 
     printf("Enter part number: ");
-    scanf("%d", &part_number);
+    scanf("%d", &new_node->number);
 
-    if (find_part(part_number, *num_parts, inventory) > 0) {
+    for (curr = *inventory, prev=NULL; curr != NULL && new_node->number > curr->number; prev = curr, curr = curr->next);
+
+    if (curr != NULL && new_node->number == curr->number) {
         printf("Part already exists.\n");
+        free(new_node);
         return;
     }
 
-    inventory[*num_parts].number = part_number;
     printf("Enter part name: ");
-    read_line(inventory[*num_parts].name, NAME_LEN);
+    read_line(new_node->name, NAME_LEN);
     printf("Enter quantity on hand: ");
-    scanf("%d", &inventory[*num_parts].on_hand);
+    scanf("%d", &new_node->on_hand);
     printf("Enter item price (£25 = 2500): ");
-    scanf("%d", &inventory[*num_parts].price);
-    (*num_parts)++;
+    scanf("%d", &new_node->price);
+    
+    new_node->next = curr;
+    if (prev == NULL) {
+        *inventory = new_node;
+    } else {
+        prev->next = new_node;
+    }
 }
 
-void search(struct part *inventory, int num_parts) {
-    int i, number;
+void search(struct part **inventory) {
+    int number;
+    struct part *p;
 
     printf("Enter part number: ");
     scanf("%d", &number);
-    i = find_part(number, num_parts, inventory);
+    p = find_part(number, inventory);
 
-    if (i >= 0) {
-        printf("Part name: %s\n", inventory[i].name);
-        printf("Quantity on hand: %d\n", inventory[i].on_hand);
-        printf("Price: £%.2d\n", (inventory[i].price/100));
+    if (p != NULL) {
+        printf("Part name: %s\n", p->name);
+        printf("Quantity on hand: %d\n", p->on_hand);
+        printf("Price: £%.2d\n", (p->price/100));
     } else {
         printf("Part not found.\n");
     }
 }
 
-void update(struct part *inventory, int num_parts) {
+void update(struct part **inventory) {
     int i, number, change, new_price;
+    struct part *p;
     char selection1;
     char selection2;
 
     printf("Enter part number: ");
     scanf("%d", &number);
-    i = find_part(number, num_parts, inventory);
+    p = find_part(number, inventory);
 
-    if (i < 0) {
+    if (p == NULL) {
         printf("Part not found.\n");
         return;
     }
@@ -117,7 +129,7 @@ void update(struct part *inventory, int num_parts) {
     if (selection1 == 'y') {
         printf("Enter change in quantity on hand: ");
         scanf("%d", &change);
-        inventory[i].on_hand += change;
+        p->on_hand += change;
     }
 
     printf("Would you like to update the part price? (y/n) ");
@@ -125,17 +137,39 @@ void update(struct part *inventory, int num_parts) {
     if (selection2 == 'y') {
         printf("Enter new price (£25 = 2500): ");
         scanf("%d", &new_price);
-        inventory[i].price = new_price;
+        p->price = new_price;
     }
 }
 
-void print(int num_parts, struct part *inventory) {
-    int i;
+void delete(struct part **inventory) {
+    int part_num_to_delete;
+    struct part *curr, *prev, *part_to_delete;
 
-    quicksort(inventory, 0, num_parts-1);
+    printf("Please enter the part number you'd like to delete: ");
+    scanf("%d", &part_num_to_delete);
+
+    part_to_delete = find_part(part_num_to_delete, inventory);
+    if (part_to_delete == NULL) { // if no part with input number exists
+        printf("No part with that number exists\n");
+        return;
+    }
+    
+    // below iterates through linked list until curr node->number matches number to delete
+    for (curr=*inventory, prev=NULL; curr != NULL && curr->number != part_to_delete->number; prev=curr, curr = curr->next);
+
+    if (prev == NULL) { // if this happens it means the entry to delete is at the head node
+        *inventory = curr->next;
+    } else {
+        prev->next = curr->next;
+    }
+    free(curr); // free unnecessary memory
+}
+
+void print(struct part **inventory) {
+    struct part *p;
 
     printf("Part Number  Part Name  Quantity on Hand  Price\n");
-    for (i=0; i < num_parts; i++) {
-        printf("%7d %15s           %lld        £%.2d\n", inventory[i].number, inventory[i].name, inventory[i].on_hand, (inventory[i].price/100));
+    for (p=*inventory; p != NULL; p = p->next) {
+        printf("%7d %15s           %lld        £%.2d\n", p->number, p->name, p->on_hand, (p->price/100));
     }
 }
