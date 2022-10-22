@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "inventory.h"
 #include "readline.h"
 
@@ -9,6 +10,8 @@ void search(struct part **inventory);
 void update(struct part **inventory);
 void delete(struct part **inventory);
 void print(struct part **inventory);
+void dump(struct part **inventory);
+void restore(struct part **inventory);
 
 int main(void)
 {
@@ -36,6 +39,12 @@ int main(void)
                 break;
             case 'p':
                 print(&inventory);
+                break;
+            case 'd':
+                dump(&inventory);
+                break;
+            case 'r':
+                restore(&inventory);
                 break;
             case 'q':
                 return 0;
@@ -110,7 +119,7 @@ void search(struct part **inventory) {
 }
 
 void update(struct part **inventory) {
-    int i, number, change, new_price;
+    int number, change, new_price;
     struct part *p;
     char selection1;
     char selection2;
@@ -172,4 +181,80 @@ void print(struct part **inventory) {
     for (p=*inventory; p != NULL; p = p->next) {
         printf("%7d %15s           %lld        £%.2d\n", p->number, p->name, p->on_hand, (p->price/100));
     }
+}
+
+void dump(struct part **inventory) {
+    FILE *to_write;
+    char output_filename[21];
+    struct part *curr_node;
+
+    printf("Enter name of output file (max 20 characters): ");
+    read_line(output_filename, 20);
+
+    if ((to_write = fopen(output_filename, "wb")) == NULL) {
+        printf("File opening failure. Please quit and try again.\n");
+        return;
+    }
+
+    for (curr_node = *inventory; curr_node != NULL; curr_node = curr_node->next) {
+        // to write everything in struct except 'struct part *next', we make size of fwrite be size of overall struct minus this final element
+        fwrite(curr_node, sizeof(struct part) - sizeof(struct part *), 1, to_write);
+    }
+    fclose(to_write);
+
+    printf("Inventory successfully written to %s\n", output_filename);
+}
+
+void restore(struct part **inventory) {
+    FILE *input;
+    char input_filename[21];
+    char yesno;
+    struct part curr_part;
+    struct part *tempOne; // used for iterating through linked list to empty it
+    struct part *tempTwo; // used for rebuilding linked list from data written to curr_part
+    struct part *to_add;
+
+    printf("This operation will clear the current inventory if one exists. Would you like to proceed? (y/n) ");
+    scanf(" %c", &yesno);
+
+    if (yesno == 'n') return;
+
+    // destroy all nodes in linked list and free memory
+    for (struct part *curr = *inventory; curr; curr = tempOne) {
+        tempOne = curr->next;
+        free(curr);
+    }
+    *inventory = NULL;
+
+    printf("Enter name of input file: ");
+    read_line(input_filename, 20);
+
+    if ((input = fopen(input_filename, "rb")) == NULL) {
+        printf("Failed to find or open the file %s\n", input_filename);
+        return;
+    }
+
+    while ((fread(&curr_part, sizeof(struct part) - sizeof(struct part *), 1, input)) == 1) {
+        if ((to_add = malloc(sizeof(struct part))) == NULL) {
+            printf("Error: failed to allocate memory for part to restore. Exiting...\n");
+            exit(EXIT_FAILURE);
+        }
+
+        to_add->number = curr_part.number;
+        to_add->on_hand = curr_part.on_hand;
+        to_add->price = curr_part.price;
+        strcpy(to_add->name, curr_part.name);
+        to_add->next = NULL;
+
+        if (*inventory == NULL) {
+            *inventory = to_add;
+            tempTwo = *inventory;
+        } else {
+            tempTwo->next = to_add;
+        }
+    }
+
+    fclose(input);
+
+    printf("Inventory successfully restored from file\n");
 }

@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g
+CFLAGS = -g -Wall
 
 inventory: inventory.o readline.o
 	${CC} ${CFLAGS} -o inventory inventory.o readline.o

@@ -1,0 +1,1 @@
+Whoa, here is another file with a third input string from a file
