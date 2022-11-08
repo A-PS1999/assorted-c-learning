@@ -20,13 +20,13 @@ struct table_item {
 struct list_node {
     struct table_item *data;
     struct list_node *next;
-    unsigned long long hash_key;
+    uint64_t hash_key;
 };
 
 struct hashtable {
-    struct list_node **entries;
     int table_size;
     int num_entries;
+    struct list_node **entries;
 };
 
 // hashtable functions
@@ -45,5 +45,8 @@ void free_list(struct list_node* node);
 struct table_item* create_item(char *name, char gender, char *birthdate, char *address);
 void print_item(struct table_item* item);
 void free_item(struct table_item* item);
+
+// utility function
+void trim_newline(char *str);
 
 #endif

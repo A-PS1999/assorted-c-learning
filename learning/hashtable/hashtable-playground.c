@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include "hashtable.h"
 
-void trim_newline(char *str);
-
 int main(void)
 {
     struct hashtable *hashtable = NULL;
@@ -23,6 +21,7 @@ int main(void)
                 }
                 hashtable = init_hashtable(size_entry);
                 printf("Hashtable successfully initialised\n");
+                size_entry = 0;
                 break;
             case 'a':
                 insert_entry(&hashtable);
@@ -56,13 +55,5 @@ int main(void)
                 printf("Invalid option code\n");
                 break;
         }
-    }
-}
-
-void trim_newline(char *str) {
-    size_t len = strlen(str);
-
-    if (len > 0 && str[len-1] == '\n') {
-        str[len-1] = '\0';
     }
 }

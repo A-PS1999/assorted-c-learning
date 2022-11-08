@@ -10,7 +10,7 @@ struct hashtable* init_hashtable(int size) {
     }
     new_table->table_size = size;
     new_table->num_entries = 0;
-    if ((new_table->entries = malloc(size*sizeof(struct list_node))) == NULL) {
+    if ((new_table->entries = calloc(size, sizeof(struct list_node *))) == NULL) {
         perror("Error: failed to allocate memory for hash table array\n");
         exit(EXIT_FAILURE);
     }
@@ -21,7 +21,7 @@ struct hashtable* init_hashtable(int size) {
 uint64_t hash(char *name) {
     uint64_t hash = HASH_OFFSET_BASIS;
 
-    for (char *ch = name; *ch; ch++) {
+    for (char *ch = name; *ch && *ch != '\n'; ch++) {
         hash ^= (uint64_t)(unsigned char)(*ch);
         hash *= HASH_PRIME;
     }
@@ -47,7 +47,7 @@ void free_hashtable(struct hashtable *table) {
 }
 
 void insert_entry(struct hashtable **table) {
-    if (table == NULL) {
+    if (*table == NULL) {
         printf("Error: Table must be initialised before it can be used!\n");
         return;
     }
@@ -71,6 +71,10 @@ void insert_entry(struct hashtable **table) {
 
     printf("Enter address (max 40 characters): ");
     fgets(address, HASHTABLE_ADDRESS_MAX, stdin);
+
+    trim_newline(name);
+    trim_newline(birthdate);
+    trim_newline(address);
 
     struct table_item* created_entry = create_item(name, gender, birthdate, address);
     struct list_node* to_insert = create_node(created_key, created_entry);
@@ -98,21 +102,22 @@ struct list_node* search_hashtable(struct hashtable *table, char *name) {
         return NULL;
     }
 
-    while (table->entries[search_key]->next != NULL) {
+    // do ... while loop works better than ordinarily while loop for searching linked lists in hashtable
+    do {
         if ((strcmp(table->entries[search_key]->data->name, name)) == 0) {
             struct list_node* found = table->entries[search_key];
             return found;
         }
 
         table->entries[search_key] = table->entries[search_key]->next;
-    }
+    } while (table->entries[search_key]->next != NULL);
 
     printf("No key for %s exists in the hashtable\n", name);
     return NULL;
 }
 
 void delete_entry(struct hashtable **table, char *name) {
-    if (table == NULL) {
+    if (*table == NULL) {
         printf("Error: table must be initialised before items can be deleted!\n");
         return;
     }
@@ -132,7 +137,7 @@ void delete_entry(struct hashtable **table, char *name) {
         return;
     }
 
-    for (curr = ref->entries[search_key], prev = NULL; curr != NULL && (strcpy(name, curr->data->name) != 0); prev=curr, curr = curr->next);
+    for (curr = ref->entries[search_key], prev = NULL; curr != NULL && (strcmp(name, curr->data->name) != 0); prev=curr, curr = curr->next);
 
     if (prev == NULL) {
         ref->entries[search_key] = curr->next;
@@ -191,9 +196,9 @@ struct table_item* create_item(char *name, char gender, char *birthdate, char *a
         exit(EXIT_FAILURE);
     }
 
-    new_entry->name = name;
-    new_entry->birthdate = birthdate;
-    new_entry->address = address;
+    strncpy(new_entry->name, name, strlen(name));
+    strncpy(new_entry->birthdate, birthdate, strlen(birthdate));
+    strncpy(new_entry->address, address, strlen(address));
     new_entry->gender = gender;
 
     return new_entry;
@@ -212,4 +217,12 @@ void free_item(struct table_item* item) {
     free(item->birthdate);
     free(item->name);
     free(item);
+}
+
+void trim_newline(char *str) {
+    size_t len = strlen(str);
+
+    if (len > 0 && str[len-1] == '\n') {
+        str[len-1] = '\0';
+    }
 }
