@@ -18,7 +18,7 @@ struct trienode* createNewTrienode(void) {
     struct trienode *new_node;
 
     if ((new_node = calloc(1, sizeof(struct trienode))) == NULL) {
-        printf("Error: failed to allocate memory for initial trie node\n");
+        printf("Error: failed to allocate memory for new trie node\n");
         exit(EXIT_FAILURE);
     }
     new_node->is_word = false;
@@ -55,20 +55,59 @@ bool insertWord(struct trienode **trie_root, char *word) {
     return true;
 }
 
-int getBranchingIndex(struct trienode **trie_root, char *word) {
-    struct trienode *curr_node = *trie_root;
-
+bool handleDeleteWord(struct trienode **trie_root, char *word) {
     if (*trie_root == NULL) {
-        printf("Error: Please ensure trie is initialised.\n");
-        return 0;
+        printf("Error: Please ensure trie is initialised before attempting to delete a word\n");
+        return false;
     }
 
     size_t word_len = strlen(word);
 
     if (word_len == 0) {
         printf("Error: Please input a valid word\n");
-        return 0;
+        return false;
     }
+
+    int wordLeafOrNot = checkIfLeafNode(trie_root, word, word_len);
+
+    switch (wordLeafOrNot) {
+        case 0:
+            bool nonLeafWordDeleted = deleteNonLeafWord(trie_root, word, word_len);
+            return nonLeafWordDeleted;
+        case 1:
+            bool leafWordDeleted = deleteLeafWord(trie_root, word, word_len);
+            return leafWordDeleted;
+        case 2:
+            return false;
+    }
+
+    return false;
+}
+
+int checkIfLeafNode(struct trienode **trie_root, char *word, size_t word_len) {
+    struct trienode *curr_node = *trie_root;
+
+    for (int i=0; i < word_len; i++) {
+        int word_key = tolower(word[i]) - 'a';
+
+        if (curr_node->children[word_key]) {
+            curr_node = curr_node->children[word_key];
+        } else {
+            return 2;
+        }
+    }
+
+    for (int j=0; j < NUM_LETTERS_IN_ALPHABET; j++) {
+        if (curr_node->children[j]) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+int getBranchingIndex(struct trienode **trie_root, char *word, size_t word_len) {
+    struct trienode *curr_node = *trie_root;
 
     int largestBranchingIndex = 0;
     for (int i=0; i < word_len; i++) {
@@ -89,25 +128,13 @@ int getBranchingIndex(struct trienode **trie_root, char *word) {
     return largestBranchingIndex;
 }
 
-char* getLongestPrefix(struct trienode **trie_root, char *word) {
-    if (*trie_root == NULL) {
-        printf("Error: Please ensure trie is initialised.\n");
-        return 0;
-    }
-
-    size_t word_len = strlen(word);
-
-    if (word_len == 0) {
-        printf("Error: Please input a valid word\n");
-        return 0;
-    }
-
+char* getLongestPrefix(struct trienode **trie_root, char *word, size_t word_len) {
     // Allocation of memory for longest prefix string, which we will return from function
     // after possibly shortening it if we detect a branching point
     char* longestPrefix = calloc(word_len+1, sizeof(char));
     strcpy(longestPrefix, word);
 
-    int branching_index = getBranchingIndex(trie_root, longestPrefix);
+    int branching_index = getBranchingIndex(trie_root, longestPrefix, word_len);
     if (branching_index >= 0) {
         longestPrefix[branching_index] = '\0';
         // Shortens allocated memory for string to branch point +1
@@ -117,22 +144,28 @@ char* getLongestPrefix(struct trienode **trie_root, char *word) {
     return longestPrefix;
 }
 
-bool deleteWord(struct trienode **trie_root, char *word) {
+bool deleteNonLeafWord(struct trienode **trie_root, char *word, size_t word_len) {
     struct trienode *curr_node = *trie_root;
 
-    if (*trie_root == NULL) {
-        printf("Error: Please ensure trie is initialised before attempting to delete a word\n");
-        return false;
+    for (int i=0; i < word_len; i++) {
+        int word_key = tolower(word[i]) - 'a';
+
+        if (curr_node->children[word_key]) {
+            curr_node = curr_node->children[word_key];
+        } else {
+            return false;
+        }
     }
 
-    size_t word_len = strlen(word);
+    curr_node->is_word = false;
 
-    if (word_len == 0) {
-        printf("Error: Please input a valid word\n");
-        return false;
-    }
+    return true;
+}
 
-    char* longestPrefixFound = getLongestPrefix(trie_root, word);
+bool deleteLeafWord(struct trienode **trie_root, char *word, size_t word_len) {
+    struct trienode *curr_node = *trie_root;
+
+    char* longestPrefixFound = getLongestPrefix(trie_root, word, word_len);
 
     int i;
     for (i=0; longestPrefixFound[i] != '\0'; i++) {
@@ -190,8 +223,35 @@ bool checkWordExists(struct trienode **trie_root, char *word) {
     }
 }
 
+void nullExcessLetters(char *suffix, int suffixPos) {
+    for (int i=suffixPos; i < MAX_WORD_SIZE; i++) {
+        suffix[i] = '\0';
+    }
+}
+
+void handleChildPrinting(struct trienode* node, char *prefix, char *suffix, int suffixPos) {
+    if (node->is_word) {
+        char to_print[MAX_WORD_SIZE];
+        strcpy(to_print, prefix);
+        nullExcessLetters(suffix, suffixPos);
+        strncat(to_print, suffix, MAX_WORD_SIZE+2);
+        printf("%s\n", to_print);
+    }
+
+    for (int i=0; i < NUM_LETTERS_IN_ALPHABET; i++) {
+        
+        if (node->children[i] == NULL) continue;
+
+        suffix[suffixPos] = i + 'a';
+
+        handleChildPrinting(node->children[i], prefix, suffix, suffixPos+1);
+    }
+}
+
 void printWordsFromPrefix(struct trienode **trie_root, char *prefix) {
     struct trienode *curr_node = *trie_root;
+
+    char suffix[MAX_WORD_SIZE] = "";
 
     if (*trie_root == NULL) {
         printf("Error: Please ensure trie is initialised before attempting to search a word\n");
@@ -208,7 +268,7 @@ void printWordsFromPrefix(struct trienode **trie_root, char *prefix) {
         }
     }
 
-    // TODO
+    handleChildPrinting(curr_node, prefix, suffix, 0);
 }
 
 void trienodeRecursiveFree(struct trienode* to_free) {
