@@ -10,7 +10,7 @@ struct minmax_heap {
 };
 
 struct minmax_heap* init_minmax_heap();
-struct minmax_heap* init_minmax_heap_w_custom_size(unsigned int size);
+struct minmax_heap* init_minmax_heap_w_custom_size(int size);
 void minmax_heap_free(struct minmax_heap* to_free);
 void minmax_heap_add(struct minmax_heap* heap, int to_add);
 int minmax_heap_peek(struct minmax_heap* heap, int min_or_max);

@@ -15,6 +15,7 @@ int checkMultiplicationPossible(struct Matrix* matrixA, struct Matrix* matrixB);
 void getRowColInput(char arr[], unsigned int* rowVal, unsigned int* colVal);
 void getMatrixFillInput(struct Matrix* matrix);
 void printMatrix(struct Matrix* matrix);
+void multiplyMatrices(struct Matrix* matrixA, struct Matrix* matrixB, struct Matrix* outputMatrix);
 
 int main(void)
 {
@@ -47,11 +48,16 @@ int main(void)
 
     initMatrixStruct(&outputMatrix, matrixA.num_rows, matrixB.num_cols);
 
-    printf("Please input the values in your first matrix.\n");
+    printf("\nPlease input the values in your first matrix.\n");
     getMatrixFillInput(&matrixA);
 
-    printf("Please input the values in your second matrix.\n");
+    printf("\nPlease input the values in your second matrix.\n");
     getMatrixFillInput(&matrixB);
+
+    multiplyMatrices(&matrixA, &matrixB, &outputMatrix);
+
+    printf("\nThe product of the 2 matrices is:");
+    printMatrix(&outputMatrix);
 
     freeMatrixStruct(&matrixA);
     freeMatrixStruct(&matrixB);
@@ -61,7 +67,7 @@ int main(void)
 }
 
 void getRowColInput(char arr[], unsigned int* rowVal, unsigned int* colVal) {
-    while (*rowVal <= 0 && *colVal <= 0) {
+    while (*rowVal <= 0 || *colVal <= 0) {
         fgets(arr, INPUT_STR_SIZE, stdin);
         sscanf(arr, "%u %u", rowVal, colVal);
     }
@@ -70,10 +76,10 @@ void getRowColInput(char arr[], unsigned int* rowVal, unsigned int* colVal) {
 void initMatrixStruct(struct Matrix* matrix, unsigned int rowCount, unsigned int colCount) {
     matrix->num_rows = rowCount;
     matrix->num_cols = colCount;
-    matrix->array = calloc(rowCount, sizeof(int *));
+    matrix->array = calloc(colCount, sizeof(int *));
 
-    for (int i=0; i < (int)colCount; i++) {
-        matrix->array[i] = calloc(colCount, sizeof(int));
+    for (int i=0; i < (int)rowCount; i++) {
+        matrix->array[i] = calloc((int)rowCount, sizeof(int));
     }
 }
 
@@ -128,8 +134,22 @@ void printMatrix(struct Matrix* matrix) {
     printf("\n");
     for (int i=0; i < (int)matrix->num_rows; i++) {
         for (int j=0; j < (int)matrix->num_cols; j++) {
-            printf("%d ", matrix->array[i][j]);
+            printf("%d ", matrix->array[j][i]);
         }
         printf("\n");
+    }
+}
+
+void multiplyMatrices(struct Matrix* matrixA, struct Matrix* matrixB, struct Matrix* outputMatrix) {
+    if (!matrixA || !matrixB || !outputMatrix) {
+        printf("Error: necessary matrices are missing.\n");
+    }
+
+    for (int i=0; i < (int)matrixA->num_rows; i++) {
+        for (int j=0; j < (int)matrixB->num_cols; j++) {
+            for (int k=0; k < (int)matrixB->num_rows; k++) {
+                outputMatrix->array[i][j] += matrixA->array[j][k] * matrixB->array[k][i];
+            }
+        }
     }
 }
