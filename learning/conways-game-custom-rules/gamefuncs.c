@@ -66,7 +66,7 @@ bool initBoard(Board* gameBoard, char* fileName, char* ruleStr) {
     }
 
     setRuleStr(gameBoard, ruleStr);
-
+    fclose(file);
     return true;
 }
 
