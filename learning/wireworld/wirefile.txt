@@ -1,0 +1,40 @@
+                                        
+   cccctHcc                             
+  c        cccccc                       
+   cHtccccc      c                      
+                cccc    cccH            
+                c  cccccc  t            
+                cccc    cccc            
+   cccccctH      c                      
+  H        cccccc                       
+   tccccccc                             
+                                        
+                                        
+    ctH    ccc                          
+    c c    H c                          
+    c c    t c                          
+    ccc    ccc                          
+                                        
+   t           t                        
+    HcccccccccH                         
+     c       c                          
+      ccccccc                           
+                                        
+   cccccctH                             
+  c        cccccc                       
+   Htcccccc      c                      
+                ccc                     
+              c  H cc                   
+             H ct   cccccccccccccc      
+              t  H cc                   
+                ccc                     
+   ctHccccc      c                      
+  c        cccccc                       
+   Htcccccc                             
+                                        
+    ctHccccccc                          
+        cc                              
+        cc                              
+    cccccccHtc                          
+                                        
+                                        
